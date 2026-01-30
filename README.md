@@ -11,47 +11,37 @@
 
 ---
 
-## The Problem with "Smart" Tools
+## 🌟 The "End of Friction" Promise
 
-Most AI agents are like eager interns who refuse to tie their own shoelaces. They are undeniably smart, yet completely helpless. You have to configure them, deploy them, manage their environments, and restart them when they trip over a missing API key.
+Most AI agents are smart but helpless. They need you to configure environments, manage keys, and restart processes. 
+**Charl** is different. It's a fleet of self-managing **OpenClaw** agents that live on the edge.
 
-We asked a simple question: **Why can't the intern just tie their own shoes?**
-
-## The Solution: OpenClaw
-
-When you deploy **Charl**, you aren't just deploying software. You are hiring a fleet of **OpenClaw** agents who are biologically designed to manage themselves.
-
-### 🌟 The "End of Friction" Workflow
-
-Forget `ssh`, `vim`, and `.env` files. If you want to change OpenClaw's configuration, you don't act like a systems administrator. You act like a boss.
-
-You simply say:
+When you want to change something, you don't edit a config file. You just tell the agent:
 
 > **You:** "We've switched to the new Claude Sonnet model. Please update yourself."
->
 > **OpenClaw:** "Consider it done."
 
-And here is where the alchemy happens:
-1.  The agent **writes its own config file**.
-2.  The agent **restarts its own process**.
-3.  The agent **verifies the new settings**.
-
-It feels less like engineering, and more like magic.
+And it happens. The agent updates its own state, persists it, and adapts instantly.
 
 ---
 
-## 🏗️ The Anatomy of Agency
+## 🏗️ Architecture & Agency
 
-**Charl** (The Mothership)
-A Cloudflare Worker that acts as the hive mind. It routes traffic, handles the API (MCP), and manages the flock.
+Charl is built on the **Cloudflare Agents SDK**, leveraging the power of Durable Objects for persistence and stateful autonomy.
 
-**OpenClaw** (The Worker)
-A living, stateful entity running in a secure Sandbox. It possesses:
-*   **The Hands**: Tools to control IoT devices and manage files.
-*   **The Eyes**: Serverless Puppeteer to browse the web and verify reality.
-*   **The Will**: The autonomy to fix its own problems.
+### Core Components
 
-### 🧠 The Hive Mind Visualization
+1.  **Charl (The Platform)**: A high-performance Worker that acts as the orchestrator.
+2.  **Registry Agent**: The "Phonebook" of the system.
+    *   **Service Discovery**: Automatically registers new agents.
+    *   **Real-time State**: Uses WebSockets to sync fleet status to the dashboard instantly.
+    *   **Presence**: Tracks agent heartbeats (Online/Offline status).
+3.  **OpenClaw Agents (The Workers)**:
+    *   **AI Brain**: Powered by `gpt-4o` (or compatible models).
+    *   **Tool Use**: Can schedule tasks, perform calculations, and browse the web.
+    *   **Sandbox**: Optional integration with `Moltbot` for secure, sandboxed execution of complex code.
+
+### 🧠 The Hive Mind
 
 ```mermaid
 graph TD
@@ -59,58 +49,58 @@ graph TD
     classDef agent fill:#e1e1e1,color:#333,stroke:#333,stroke-width:1px;
     classDef client fill:#f9fafb,color:#333,stroke:#333,stroke-width:1px;
 
-    User("User / IDE / Claude"):::client
+    User("User / Dashboard"):::client
     
-    subgraph Charl_Cloud ["☁️ Charl (The Platform)"]
+    subgraph Cloudflare_Worker ["☁️ Charl Worker"]
         direction TB
-        Router["Orchestrator / Router"]:::platform
+        Registry["📖 Registry Agent"]:::platform
         
-        subgraph Agent_1 ["Agent 1: 'The DevOps Eng'"]
-           OC1["🦁 OpenClaw <br/>(Self-Configuring)"]:::agent
-        end
-        
-        subgraph Agent_2 ["Agent 2: 'The Researcher'"]
-           OC2["🦁 OpenClaw <br/>(Browsing Web)"]:::agent
-        end
-        
-        subgraph Agent_3 ["Agent 3: 'Home Automation'"]
-           OC3["🦁 OpenClaw <br/>(IoT Control)"]:::agent
+        subgraph Agents
+           A1["🦁 Agent: Research"]:::agent
+           A2["🦁 Agent: DevOps"]:::agent
         end
     end
-
-    User -->|HTTP / MCP| Router
-    Router -->|"Routes Task"| Agent_1
-    Router -->|"Routes Task"| Agent_2
-    Router -->|"Routes Task"| Agent_3
+    
+    User <-->|WebSocket| Registry
+    Registry <-->|JSRPC| A1
+    Registry <-->|JSRPC| A2
 ```
 
 ---
 
-## 🚀 Why You'll Love It
+## 🚀 Getting Started
 
-### 1. It Sees What You See
-When you ask OpenClaw to check a website, it doesn't hallucinate. It spins up a browser, takes a photo, and acts on ground truth. It’s the difference between guessing and knowing.
+### 1. Zero-Config Deployment
+Deploy the entire platform to your Cloudflare account in seconds.
 
-### 2. It Plug & Plays (Literally)
-Through the **Model Context Protocol (MCP)**, Charl turns your entire agent fleet into a backend for your favorite tools. Connect **Cursor** or **Claude Desktop** to Charl, and suddenly your local code editor has eyes and hands in the cloud.
+```bash
+npm run deploy
+```
 
-### 3. It Scales Without Drama
-Add one agent or one hundred. Charl coordinates them all without you needing to learn Kubernetes.
+### 2. Access the Dashboard
+Visit your deployed worker URL (e.g., `https://charl.your-subdomain.workers.dev`).
+*   **Create Agents**: Spin up new workers with a click.
+*   **Monitor Fleet**: See real-time status and heartbeats.
+*   **Broadcast**: Send system-wide commands to all agents.
+
+### 3. Documentation
+For detailed guides on architecture, configuration, and API usage, visit the **Docs** page on your deployed instance at `/docs`.
 
 ---
 
-## Quick Start (The Low-Friction Way)
+## 🛠️ Development
 
-1. **Deploy Charl**:
-   ```bash
-   npm run deploy
-   ```
+Run the full stack locally:
 
-2. **Connect**:
-   Add Charl to your Claude Desktop config (see `package.json` for the MCP snippet).
+```bash
+npm run dev
+```
 
-3. **Delegation**:
-   Open the chat. Ask the agent to configure itself. Then go make a coffee.
+This starts the Worker, the Client (Vite), and the connection to Cloudflare services locally.
+
+### Key Config
+*   `wrangler.jsonc`: Cloudflare bindings and configuration.
+*   `.dev.vars`: Local secrets (OPENAI_API_KEY, etc.).
 
 ---
 

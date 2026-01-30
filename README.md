@@ -1,43 +1,64 @@
-# 🤖 OpenClaw: The Self-Sufficient AI Worker
+# 🧶 Charl: The OpenClaw Orchestrator
 
 ![npm i agents command](./npm-agents-banner.svg)
 
 <a href="https://deploy.workers.cloudflare.com/?url=https://github.com/cloudflare/agents-starter"><img src="https://deploy.workers.cloudflare.com/button" alt="Deploy to Cloudflare"/></a>
 
-OpenClaw is a next-generation AI agent built on **Cloudflare Agents**. It goes beyond simple chat by having the power to **configure itself**, **see the web**, and **serve external clients** via MCP.
+**Charl** is the cloud-native orchestration platform that deploys and manages **OpenClaw** agents.
 
-> "The first agent that doesn't need you to hold its hand."
+It represents a paradigm shift from "Chatbots" to **Autonomous Digital Employees**.
 
-## 🚀 Key Capabilities
+> "Charl manages the flock. OpenClaw does the work."
 
-### 1. 🔌 Model Context Protocol (MCP) Server
-OpenClaw isn't just a chatbot; it's an intelligent backend for your other AI tools.
-- **Connect** your Claude Desktop or Cursor IDE directly to OpenClaw.
-- **Expose** internal tools (browsing, weather, device control) to external LLMs.
-- **Endpoint**: `/mcp`
+## 🌟 The Zero-Touch Revolution
 
-### 2. 👁️ Visual Browsing (Agent Eyes)
-Powered by generic `puppeteer` support.
-- **Read**: Extracts text content from any URL for analysis.
-- **See**: Takes screenshots of webpages to understand visual layout.
-- **Verify**: Can visually check if deployments or changes "look right".
+Most AI agents are high-maintenance. You have to configure them, deploy them, restart them, and hand-feed them API keys.
 
-### 3. ⚙️ Autonomous Configuration
-OpenClaw manages its own existence.
-- **Read Config**: Can inspect its current `config.json5`.
-- **Self-Configure**: Can write new configurations and environment settings.
-- **Self-Restart**: Can restart its own process to apply changes without human intervention.
-- **Lifecycle**: Start, stop, and manage the underlying gateway process.
+**OpenClaw is different.** It is self-aware and self-managing.
 
-### 4. 📱 Device Management
-- **List**: See all connected IoT/Edge devices.
-- **Approve**: Autonomously authorize new device pairings.
+### The "Magic Moment" Workflow
+Instead of editing config files and redeploying, you simply **talk** to the agent:
+
+> **User:** "Hey, I need you to use the new OpenAI key `sk-proj-...`."
+>
+> **OpenClaw:** "Understood. Updating my configuration..."
+> *[OpenClaw writes to `config.json5` inside its secure sandbox]*
+> *[OpenClaw triggers a self-restart]*
+> 
+> **OpenClaw:** "I'm back online. The new key is active. What's next?"
+
+This isn't a scripted illusion. The agent physically manages its own process lifecycle within the Cloudflare Sandbox. It allows you to spin up a fresh agent and have it **configure itself** simply by following your instructions.
+
+---
+
+## 🏗️ Architecture
+
+- **Charl (The Platform)**: A high-performance Cloudflare Worker that acts as the control plane. It handles routing, WebSocket connections, and the MCP API.
+- **OpenClaw (The Worker)**: A persistent, stateful entity running in a Docker Sandbox. It has a filesystem, a CLI, and the ability to run long-running tasks.
+
+## 🚀 Revolutionary Features
+
+### 1. 👁️ Agent Eyes (Serverless Vision)
+OpenClaw doesn't hallucinate the web. It sees it.
+Powered by **Serverless Puppeteer**, Charl orchestrates browser sessions on the edge.
+*   **True Verification**: When you ask "Did the deploy work?", OpenClaw visits the URL, takes a screenshot, reads the text, and confirms based on **ground truth**.
+*   **Visual Debugging**: It can send you screenshots of what it sees, bridging the gap between the agent's mind and your screen.
+
+### 2. 🔌 MCP: The Universal Connector
+Charl implements the **Model Context Protocol (MCP)**, turning your OpenClaw agents into backend tools for *other* AIs.
+*   **Supercharge your IDE**: Connect **Cursor** or **Claude Desktop** to Charl. Suddenly, your local IDE has access to OpenClaw's tools.
+*   **Example**: Ask Cursor to "Check the logs on the IoT device." Cursor sends the request to Charl -> OpenClaw -> Device.
+
+### 3. 📱 Autonomous Device Management
+OpenClaw connects to the physical world.
+*   **IoT Control**: It can discover, pair, and control local devices.
+*   **Gatekeeper**: It autonomously approves/denies pairing requests based on your policies, logging every action.
 
 ---
 
 ## Quick Start
 
-1. **Deploy**:
+1. **Deploy Charl**:
    ```bash
    npm run deploy
    ```
@@ -47,7 +68,7 @@ OpenClaw manages its own existence.
    ```json
    {
      "mcpServers": {
-       "openclaw": {
+       "charl": {
          "command": "npx",
          "args": ["-y", "@modelcontextprotocol/client", "sse", "https://<YOUR-WORKER-URL>/mcp"]
        }
@@ -55,37 +76,16 @@ OpenClaw manages its own existence.
    }
    ```
 
-3. **Chat or Automate**:
-   - Open the web UI to chat.
-   - Or ask Claude to "Configure OpenClaw" directly!
+3. **Experience Autonomy**:
+   - Open the Charl web UI.
+   - Tell your new agent: *"Configure yourself to use Claude Sonnet and restart."*
+   - Watch it happen.
 
 ---
 
-## Tech Stack
-- **Cloudflare Workers** & **Durable Objects**: Serverless state and compute.
-- **Agents SDK**: Core AI logic and state management.
-- **Puppeteer**: Serverless browser automation.
-- **MCP SDK**: Universal protocol for AI tool sharing.
-- **Hono**: Lightweight web framework for routing.
-
-## Project Structure
-
-```
-├── src/
-│   ├── app.tsx        # Chat UI
-│   ├── server.ts      # Main Worker & HTTP Routes
-│   ├── tools.ts       # Shared Tool Definitions (Used by Chat & MCP)
-│   ├── utils.ts       # Utilities
-│   └── styles.css     # Styling
-├── worker/
-│   ├── mcp.ts         # MCP Server Implementation
-│   ├── gateway/       # OpenClaw Process Management
-│   └── types.ts       # Type Definitions
-```
-
 ## Adding New Tools
 
-OpenClaw uses a shared tool repository (`worker/tools.ts`). Any tool added there is automatically available to:
+Charl defines the shared toolset in `worker/tools.ts`. Any tool added there is automatically available to:
 1. The Web Chat UI
 2. The MCP Server (external clients)
 3. Scheduled Tasks

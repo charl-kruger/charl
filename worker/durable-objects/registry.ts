@@ -1,5 +1,5 @@
 import { Agent } from "agents";
-import type { AgentEnv } from "./types";
+import type { AgentEnv } from "../types";
 
 export interface AgentMetadata {
     id: string;

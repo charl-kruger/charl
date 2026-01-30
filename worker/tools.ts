@@ -119,14 +119,14 @@ import {
  * Tool to manage the Moltbot gateway lifecycle (start/stop/restart)
  * Executed manually or automatically by the AI if it detects connection issues
  */
-const manageMoltbotLifecycle = tool({
+export const manageMoltbotLifecycleDef = {
   description: "Start, stop, or restart the Moltbot gateway process",
-  inputSchema: z.object({
+  parameters: z.object({
     action: z
       .enum(["start", "stop", "restart"])
       .describe("The action to perform on the Moltbot gateway")
   }),
-  execute: async ({ action }) => {
+  execute: async ({ action }: { action: "start" | "stop" | "restart" }) => {
     const { agent } = getCurrentAgent<MoltbotAgent>();
     if (!agent) throw new Error("Agent context not found");
 
@@ -158,22 +158,28 @@ const manageMoltbotLifecycle = tool({
       return `Failed to ${action} Moltbot gateway: ${error}`;
     }
   }
+};
+
+const manageMoltbotLifecycle = tool({
+  description: manageMoltbotLifecycleDef.description,
+  inputSchema: manageMoltbotLifecycleDef.parameters,
+  execute: manageMoltbotLifecycleDef.execute
 });
 
 /**
  * Tool to list and approve devices
  * Allows the AI to help the user pair new devices
  */
-const manageDevices = tool({
+export const manageDevicesDef = {
   description: "List connected/pending devices or approve a pairing request",
-  inputSchema: z.object({
+  parameters: z.object({
     action: z.enum(["list", "approve"]).describe("List devices or approve one"),
     requestId: z
       .string()
       .optional()
       .describe("The requestId to approve (required if action is 'approve')")
   }),
-  execute: async ({ action, requestId }) => {
+  execute: async ({ action, requestId }: { action: "list" | "approve"; requestId?: string }) => {
     const { agent } = getCurrentAgent<MoltbotAgent>();
     if (!agent) throw new Error("Agent context not found");
 
@@ -225,16 +231,22 @@ const manageDevices = tool({
       return `Error: ${error}`;
     }
   }
+};
+
+const manageDevices = tool({
+  description: manageDevicesDef.description,
+  inputSchema: manageDevicesDef.parameters,
+  execute: manageDevicesDef.execute
 });
 
 /**
  * Configure Moltbot via config file or environment variables
  * Enables autonomous setup of the agent
  */
-const configureMoltbot = tool({
+export const configureMoltbotDef = {
   description:
     "Configure Moltbot settings (writes to config.json5) and optionally restart",
-  inputSchema: z.object({
+  parameters: z.object({
     config: z
       .record(z.any())
       .describe("Configuration object (will be written to config.json5)"),
@@ -243,7 +255,7 @@ const configureMoltbot = tool({
       .default(false)
       .describe("Whether to restart the Moltbot process after configuring")
   }),
-  execute: async ({ config, restart }) => {
+  execute: async ({ config, restart }: { config: Record<string, any>; restart: boolean }) => {
     const { agent } = getCurrentAgent<MoltbotAgent>();
     if (!agent) throw new Error("Agent context not found");
     const sandbox = agent.getSandbox();
@@ -271,7 +283,8 @@ const configureMoltbot = tool({
       const safeConfigStr = configStr.replace(/'/g, "'\\''");
 
       const writeCmd = `echo '${safeConfigStr}' > ${configPath}`;
-      const writeProc = await sandbox.startProcess(writeCmd);
+      // Fixed: unused writeProc variable removed
+      await sandbox.startProcess(writeCmd);
       await new Promise((r) => setTimeout(r, 1000));
 
       let msg = `Configuration written to ${configPath}.`;
@@ -293,15 +306,21 @@ const configureMoltbot = tool({
       return `Failed to configure Moltbot: ${error}`;
     }
   }
+};
+
+const configureMoltbot = tool({
+  description: configureMoltbotDef.description,
+  inputSchema: configureMoltbotDef.parameters,
+  execute: configureMoltbotDef.execute
 });
 
 /**
  * Read the current Moltbot configuration from config.json5
  * Enables the agent to understand current settings before modifying them
  */
-const readMoltbotConfig = tool({
+export const readMoltbotConfigDef = {
   description: "Read the current Moltbot configuration from config.json5",
-  inputSchema: z.object({}),
+  parameters: z.object({}),
   execute: async () => {
     const { agent } = getCurrentAgent<MoltbotAgent>();
     if (!agent) throw new Error("Agent context not found");
@@ -335,14 +354,20 @@ const readMoltbotConfig = tool({
       return `Failed to read config: ${error}`;
     }
   }
+};
+
+const readMoltbotConfig = tool({
+  description: readMoltbotConfigDef.description,
+  inputSchema: readMoltbotConfigDef.parameters,
+  execute: readMoltbotConfigDef.execute
 });
 
 /**
  * Tool to retrieve container logs for debugging
  */
-const getContainerLogs = tool({
+export const getContainerLogsDef = {
   description: "Get recent logs from the Moltbot gateway process for debugging",
-  inputSchema: z.object({}),
+  parameters: z.object({}),
   execute: async () => {
     const { agent } = getCurrentAgent<MoltbotAgent>();
     if (!agent) throw new Error("Agent context not found");
@@ -360,14 +385,20 @@ const getContainerLogs = tool({
       return `Failed to get logs: ${error}`;
     }
   }
+};
+
+const getContainerLogs = tool({
+  description: getContainerLogsDef.description,
+  inputSchema: getContainerLogsDef.parameters,
+  execute: getContainerLogsDef.execute
 });
 
 /**
  * Tool to inspect container version and config
  */
-const inspectContainer = tool({
+export const inspectContainerDef = {
   description: "Check the Moltbot/Container version and configuration",
-  inputSchema: z.object({}),
+  parameters: z.object({}),
   execute: async () => {
     const { agent } = getCurrentAgent<MoltbotAgent>();
     if (!agent) throw new Error("Agent context not found");
@@ -382,6 +413,12 @@ const inspectContainer = tool({
       return `Failed to inspect container: ${error}`;
     }
   }
+};
+
+const inspectContainer = tool({
+  description: inspectContainerDef.description,
+  inputSchema: inspectContainerDef.parameters,
+  execute: inspectContainerDef.execute
 });
 
 // Import puppeteer for visual browsing
@@ -391,9 +428,9 @@ import puppeteer from "@cloudflare/puppeteer";
  * Tool to browse a webpage (Agent Eyes)
  * Can read text content or take a screenshot
  */
-const browsePage = tool({
+export const browsePageDef = {
   description: "Visit a webpage to read its content or take a screenshot",
-  inputSchema: z.object({
+  parameters: z.object({
     url: z.string().url().describe("The URL to visit"),
     action: z
       .enum(["read", "screenshot"])
@@ -402,7 +439,7 @@ const browsePage = tool({
         "Action to perform: 'read' for text content, 'screenshot' for image"
       )
   }),
-  execute: async ({ url, action }) => {
+  execute: async ({ url, action }: { url: string; action: "read" | "screenshot" }) => {
     const { agent } = getCurrentAgent<MoltbotAgent>();
     if (!agent) throw new Error("Agent context not found");
     // @ts-expect-error - env is protected
@@ -454,6 +491,12 @@ const browsePage = tool({
       }
     }
   }
+};
+
+const browsePage = tool({
+  description: browsePageDef.description,
+  inputSchema: browsePageDef.parameters,
+  execute: browsePageDef.execute
 });
 
 /**

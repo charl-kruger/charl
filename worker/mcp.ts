@@ -1,7 +1,15 @@
 import { McpAgent } from "agents/mcp";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { AgentEnv, HonoVariables } from "./types";
-import { tools } from "./tools";
+import {
+  manageMoltbotLifecycleDef,
+  manageDevicesDef,
+  configureMoltbotDef,
+  readMoltbotConfigDef,
+  getContainerLogsDef,
+  inspectContainerDef,
+  browsePageDef
+} from "./tools";
 import { getSandbox } from "@cloudflare/sandbox";
 
 type State = {
@@ -59,214 +67,29 @@ export class MoltbotMcp extends McpAgent<AgentEnv, State, HonoVariables> {
   }
 
   async init() {
-    // Register all tools from our shared tools definition
-    // We navigate to the registerTool method if available, or try tool with correct signature
-    // The previous error suggested tool() exists but signature was mismatched.
-    // The agents-sdk docs say registerTool.
+    // Register tools using raw definitions
+    // Note: McpServer from sdk should handle Zod schemas if using proper register tool method, 
+    // but here we use simple tool() registration.
 
-    // cast server to any to avoid type complaints if registerTool is not on the strict type definition of the installed sdk
-    const srv = this.server as any;
+    // We import the definitions from tools.ts
+    // We use the imported definitions from tools.ts
 
-    if (srv.registerTool) {
-      // manageMoltbotLifecycle
-      srv.registerTool(
-        "manage_moltbot_lifecycle",
-        {
-          description: tools.manageMoltbotLifecycle.description,
-          inputSchema: tools.manageMoltbotLifecycle.parameters as any
-        },
-        async (args: any) => {
-          return tools.manageMoltbotLifecycle.execute!(args as any, {
-            toolCallId: "mcp",
-            messages: []
-          });
-        }
-      );
+    // Helper to register tool
+    const register = (
+      name: string,
+      def: { description: string; parameters: any; execute: (args: any) => Promise<any> }
+    ) => {
+      this.server.tool(name, def.description, def.parameters, async (args: any) => {
+        return def.execute(args);
+      });
+    };
 
-      // configureMoltbot
-      srv.registerTool(
-        "configure_moltbot",
-        {
-          description: tools.configureMoltbot.description,
-          inputSchema: tools.configureMoltbot.parameters as any
-        },
-        async (args: any) => {
-          return tools.configureMoltbot.execute!(
-            args.config ? args : { config: args },
-            {
-              toolCallId: "mcp",
-              messages: []
-            }
-          );
-        }
-      );
-
-      // readMoltbotConfig
-      srv.registerTool(
-        "read_moltbot_config",
-        {
-          description: tools.readMoltbotConfig.description,
-          inputSchema: tools.readMoltbotConfig.parameters as any
-        },
-        async (args: any) => {
-          return tools.readMoltbotConfig.execute!(args, {
-            toolCallId: "mcp",
-            messages: []
-          });
-        }
-      );
-
-      // manageDevices
-      srv.registerTool(
-        "manage_devices",
-        {
-          description: tools.manageDevices.description,
-          inputSchema: tools.manageDevices.parameters as any
-        },
-        async (args: any) => {
-          return tools.manageDevices.execute!(args as any, {
-            toolCallId: "mcp",
-            messages: []
-          });
-        }
-      );
-
-      // getContainerLogs
-      srv.registerTool(
-        "get_container_logs",
-        {
-          description: tools.getContainerLogs.description,
-          inputSchema: tools.getContainerLogs.parameters as any
-        },
-        async (args: any) => {
-          return tools.getContainerLogs.execute!(args as any, {
-            toolCallId: "mcp",
-            messages: []
-          });
-        }
-      );
-
-      // inspectContainer
-      srv.registerTool(
-        "inspect_container",
-        {
-          description: tools.inspectContainer.description,
-          inputSchema: tools.inspectContainer.parameters as any
-        },
-        async (args: any) => {
-          return tools.inspectContainer.execute!(args as any, {
-            toolCallId: "mcp",
-            messages: []
-          });
-        }
-      );
-
-      // browsePage
-      srv.registerTool(
-        "browse_page",
-        {
-          description: tools.browsePage.description,
-          inputSchema: tools.browsePage.parameters as any
-        },
-        async (args: any) => {
-          return tools.browsePage.execute!(args as any, {
-            toolCallId: "mcp",
-            messages: []
-          });
-        }
-      );
-    } else {
-      // Fallback to tool() if registerTool invalid
-      // manageMoltbotLifecycle
-      this.server.tool(
-        "manage_moltbot_lifecycle",
-        tools.manageMoltbotLifecycle.description,
-        tools.manageMoltbotLifecycle.parameters as any,
-        async (args) => {
-          return tools.manageMoltbotLifecycle.execute!(args as any, {
-            toolCallId: "mcp",
-            messages: []
-          });
-        }
-      );
-
-      // configureMoltbot
-      this.server.tool(
-        "configure_moltbot",
-        tools.configureMoltbot.description,
-        tools.configureMoltbot.parameters as any,
-        async (args) => {
-          return tools.configureMoltbot.execute!(args as any, {
-            toolCallId: "mcp",
-            messages: []
-          });
-        }
-      );
-
-      // readMoltbotConfig
-      this.server.tool(
-        "read_moltbot_config",
-        tools.readMoltbotConfig.description,
-        tools.readMoltbotConfig.parameters as any,
-        async (args) => {
-          return tools.readMoltbotConfig.execute!(args as any, {
-            toolCallId: "mcp",
-            messages: []
-          });
-        }
-      );
-
-      // manageDevices
-      this.server.tool(
-        "manage_devices",
-        tools.manageDevices.description,
-        tools.manageDevices.parameters as any,
-        async (args) => {
-          return tools.manageDevices.execute!(args as any, {
-            toolCallId: "mcp",
-            messages: []
-          });
-        }
-      );
-
-      // getContainerLogs
-      this.server.tool(
-        "get_container_logs",
-        tools.getContainerLogs.description,
-        tools.getContainerLogs.parameters as any,
-        async (args) => {
-          return tools.getContainerLogs.execute!(args as any, {
-            toolCallId: "mcp",
-            messages: []
-          });
-        }
-      );
-
-      // inspectContainer
-      this.server.tool(
-        "inspect_container",
-        tools.inspectContainer.description,
-        tools.inspectContainer.parameters as any,
-        async (args) => {
-          return tools.inspectContainer.execute!(args as any, {
-            toolCallId: "mcp",
-            messages: []
-          });
-        }
-      );
-
-      // browsePage
-      this.server.tool(
-        "browse_page",
-        tools.browsePage.description,
-        tools.browsePage.parameters as any,
-        async (args) => {
-          return tools.browsePage.execute!(args as any, {
-            toolCallId: "mcp",
-            messages: []
-          });
-        }
-      );
-    }
+    register("manage_moltbot_lifecycle", manageMoltbotLifecycleDef);
+    register("manage_devices", manageDevicesDef);
+    register("configure_moltbot", configureMoltbotDef);
+    register("read_moltbot_config", readMoltbotConfigDef);
+    register("get_container_logs", getContainerLogsDef);
+    register("inspect_container", inspectContainerDef);
+    register("browse_page", browsePageDef);
   }
 }

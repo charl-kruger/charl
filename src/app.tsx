@@ -14,6 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { MemoizedMarkdown } from "@/components/memoized-markdown";
 import { ToolInvocationCard } from "@/components/tool-invocation-card/ToolInvocationCard";
+import { SettingsModal } from "@/components/settings-modal";
 
 // Icon imports
 import {
@@ -24,7 +25,8 @@ import {
   TrashIcon,
   PaperPlaneTiltIcon,
   StopIcon,
-  DesktopIcon
+  DesktopIcon,
+  GearIcon
 } from "@phosphor-icons/react";
 
 // List of tools that require human confirmation
@@ -40,6 +42,7 @@ export default function Chat() {
     return (savedTheme as "dark" | "light") || "dark";
   });
   const [showDebug, setShowDebug] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [textareaHeight, setTextareaHeight] = useState("auto");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -71,8 +74,12 @@ export default function Chat() {
     setTheme(newTheme);
   };
 
+  // Extract agent name from URL /agents/:name
+  const match = window.location.pathname.match(/^\/agents\/([^/]+)/);
+  const agentName = match ? match[1] : "chat";
+
   const agent = useAgent({
-    agent: "chat"
+    agent: agentName
   });
 
   const [agentInput, setAgentInput] = useState("");
@@ -206,7 +213,24 @@ export default function Chat() {
           >
             <TrashIcon size={20} />
           </Button>
+
+          <div className="w-px h-6 bg-neutral-200 dark:bg-neutral-800 mx-1" />
+
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-full"
+            onClick={() => setShowSettings(true)}
+            title="Agent Settings"
+          >
+            <GearIcon size={20} />
+          </Button>
         </div>
+
+        <SettingsModal
+          isOpen={showSettings}
+          onClose={() => setShowSettings(false)}
+        />
 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-24 max-h-[calc(100vh-10rem)]">

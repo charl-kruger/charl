@@ -45,6 +45,9 @@ export interface AgentEnv extends Env {
 
   // MCP Server Binding
   MoltbotMcp: DurableObjectNamespace;
+
+  // Agent Registry
+  Registry: DurableObjectNamespace;
 }
 
 export interface JWTPayload {

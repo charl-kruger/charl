@@ -1,14 +1,30 @@
-import "./index.css";
 import { createRoot } from "react-dom/client";
 import App from "./app";
+import { HomePage } from "./pages/home-page";
 import { Providers } from "@/providers";
+import "./index.css";
 
-const root = createRoot(document.getElementById("app")!);
+const rootElement = document.getElementById("root") || document.getElementById("app");
 
-root.render(
-  <Providers>
-    <div className="bg-neutral-50 text-base text-neutral-900 antialiased transition-colors selection:bg-blue-700 selection:text-white dark:bg-neutral-950 dark:text-neutral-100">
-      <App />
-    </div>
-  </Providers>
-);
+if (rootElement) {
+  const root = createRoot(rootElement);
+
+  // Simple client-side routing
+  const path = window.location.pathname;
+
+  let component;
+  if (path === "/" || path === "/index.html") {
+    component = <HomePage />;
+  } else if (path.startsWith("/agents/")) {
+    component = <App />;
+  } else {
+    // Fallback/404 - could also be HomePage
+    component = <HomePage />;
+  }
+
+  root.render(
+    <Providers>
+      {component}
+    </Providers>
+  );
+}

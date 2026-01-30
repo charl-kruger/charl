@@ -1,4 +1,5 @@
-import { routeAgentRequest, type Schedule } from "agents";
+import { routeAgentRequest, type Schedule, getAgentByName } from "agents";
+import type { Registry } from "./registry";
 
 import { getSchedulePrompt } from "agents/schedule";
 
@@ -55,17 +56,96 @@ export class Chat extends AIChatAgent<AgentEnv> {
     return this._sandbox;
   }
 
+
+
+  // ... existing code ...
+
+  async sendHeartbeat() {
+    // @ts-ignore - Registry binding
+    if (this.env.Registry) {
+      const registry = await getAgentByName<AgentEnv, Registry>(this.env.Registry, "default");
+      // Use RPC call
+      await registry.heartbeat(this.name);
+    }
+  }
+
   async fetch(request: Request) {
     const url = new URL(request.url);
+
+    // Send unique heartbeat for this agent
+    try {
+      // Fire and forget heartbeat to not block the request
+      this.ctx.waitUntil(this.sendHeartbeat());
+    } catch (e) {
+      // Ignore heartbeat errors
+    }
+
+    // Internal System Instruction (Broadcast)
+    if (url.pathname === "/system/instruction" && request.method === "POST") {
+      const body = await request.json() as { message: string };
+      if (body.message) {
+        await this.saveMessages([
+          ...this.messages,
+          {
+            id: generateId(),
+            role: "user", // Appearing as user/system instruction
+            parts: [{ type: "text", text: `SYSTEM BROADCAST: ${body.message}` }],
+            metadata: { createdAt: new Date() }
+          }
+        ]);
+        return new Response("Instruction received", { status: 200 });
+      }
+    }
+
+    // Check if the request is for Settings API
+    if (url.pathname.endsWith("/settings")) {
+      if (request.method === "GET") {
+        const secrets = (await this.storage.get("secrets")) || {};
+        // Return masked secrets
+        const maskedSecrets = Object.fromEntries(
+          Object.entries(secrets).map(([key, value]) => [
+            key,
+            value ? "********" : null
+          ])
+        );
+        // Also include info about global secrets
+        const globalKeys = [
+          "OPENAI_API_KEY",
+          "ANTHROPIC_API_KEY",
+          "TELEGRAM_BOT_TOKEN",
+          "DISCORD_BOT_TOKEN",
+          "SLACK_BOT_TOKEN",
+          "SLACK_APP_TOKEN",
+          "WHATSAPP_TOKEN"
+        ];
+
+        const globalStatus = Object.fromEntries(
+          globalKeys.map(key => [key, !!(this.env as any)[key]])
+        );
+
+        return new Response(JSON.stringify({ agent: maskedSecrets, global: globalStatus }), {
+          headers: { "Content-Type": "application/json" }
+        });
+      }
+
+      if (request.method === "POST") {
+        const newSecrets = await request.json();
+        await this.storage.put("secrets", newSecrets);
+        return new Response(JSON.stringify({ success: true }), {
+          headers: { "Content-Type": "application/json" }
+        });
+      }
+    }
 
     // Check if the request is targeting the Moltbot proxy
     // We assume traffic to /.../moltbot/... is proxied.
     if (url.pathname.includes("/moltbot")) {
       const sandbox = this.getSandbox();
+      const secrets = (await this.storage.get("secrets")) || {};
 
       // Ensure gateway is healthy (start if needed)
       try {
-        await ensureMoltbotGateway(sandbox, this.env);
+        await ensureMoltbotGateway(sandbox, this.env, secrets as Record<string, string>);
       } catch (error) {
         console.error("Failed to ensure moltbot gateway:", error);
         return new Response("Moltbot Gateway Failed", { status: 503 });
@@ -104,7 +184,7 @@ export class Chat extends AIChatAgent<AgentEnv> {
         // Mock ExecutionContext
         const executionCtx = {
           waitUntil: this.ctx.waitUntil.bind(this.ctx),
-          passThroughOnException: () => {}
+          passThroughOnException: () => { }
         } as any;
 
         return handler.fetch(newReq, this.env, executionCtx);
@@ -230,6 +310,19 @@ app.all("*", async (c) => {
       "OPENAI_API_KEY is not set, don't forget to set it locally in .dev.vars, and use `wrangler secret bulk .dev.vars` to upload it to production"
     );
   }
+  // Handle /agents/:name routes
+  const url = new URL(c.req.url);
+  const match = url.pathname.match(/^\/agents\/([^/]+)/);
+
+  if (match) {
+    const agentName = match[1];
+    // Rewrite legacy request routing logic here or rely on the Agents SDK to handle it
+    // The Agents SDK `routeAgentRequest` handles standard routing, but we need to ensure it targets the right agent
+
+    // For now, prompt the Agents SDK to route based on the 'agents' pattern
+    // The SDK likely inspects the URL path or headers using AsyncLocalStorage
+  }
+
   const response = await routeAgentRequest(c.req.raw, c.env);
   if (response) {
     return response;
@@ -249,7 +342,18 @@ app.use("/mcp", async (c, next) => {
   return stub.fetch(c.req.raw);
 });
 
-// Export the MoltbotMcp class
-export { MoltbotMcp };
+// Mount Registry routes
+app.all("/api/registry/*", async (c) => {
+  // Singleton Registry
+  const id = c.env.Registry.idFromName("default");
+  const stub = c.env.Registry.get(id);
+  // Strip /api/registry prefix if needed, or just pass through
+  // The Registry DO expects /api/registry paths as is
+  return stub.fetch(c.req.raw);
+});
 
 export default app;
+
+// Export the MoltbotMcp and Registry classes
+export { MoltbotMcp };
+export { Registry } from "./registry";

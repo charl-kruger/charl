@@ -38,6 +38,10 @@
       {
         "name": "MoltbotMcp",
         "class_name": "MoltbotMcp"
+      },
+      {
+        "name": "Registry",
+        "class_name": "Registry"
       }
     ]
   },
@@ -53,6 +57,12 @@
       "tag": "v2",
       "new_sqlite_classes": [
         "MoltbotMcp"
+      ]
+    },
+    {
+      "tag": "v3",
+      "new_sqlite_classes": [
+        "Registry"
       ]
     }
   ],

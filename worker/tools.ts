@@ -150,7 +150,7 @@ export const manageMoltbotLifecycleDef = {
       }
 
       if (action === "start" || action === "restart") {
-        await ensureMoltbotGateway(sandbox, env);
+        await ensureMoltbotGateway(sandbox, env, {}, agent.name);
         return `Moltbot gateway ${action === "start" ? "started" : "restarted"} successfully.`;
       }
     } catch (error) {
@@ -189,7 +189,7 @@ export const manageDevicesDef = {
 
     try {
       // Ensure gateway is up before running CLI commands
-      await ensureMoltbotGateway(sandbox, env);
+      await ensureMoltbotGateway(sandbox, env, {}, agent.name);
 
       if (action === "list") {
         const proc = await sandbox.startProcess(
@@ -296,7 +296,7 @@ export const configureMoltbotDef = {
           await process.kill();
           await new Promise((r) => setTimeout(r, 2000));
         }
-        await ensureMoltbotGateway(sandbox, env);
+        await ensureMoltbotGateway(sandbox, env, {}, agent.name);
         msg += " Restarted successfully.";
       }
 

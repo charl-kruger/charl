@@ -1,3 +1,82 @@
+# ==============================================================================
+# AI Provider Configuration
+# ==============================================================================
+
+# OpenAI API Key (Required if using OpenAI models directly)
 OPENAI_API_KEY=sk-proj-1234567890
-# Optional - Cloudflare AI Gateway https://developers.cloudflare.com/ai-gateway/
-# GATEWAY_BASE_URL=https://gateway.ai.cloudflare.com/v1/..
+
+# AI Gateway (Preferred)
+# Configure your AI Gateway in Cloudflare Dashboard and set the base URL here.
+# Example: https://gateway.ai.cloudflare.com/v1/{account_id}/{gateway_id}/anthropic
+AI_GATEWAY_BASE_URL=
+AI_GATEWAY_API_KEY=
+
+# Legacy/Direct Provider Configuration (Fallback if Gateway not used)
+ANTHROPIC_API_KEY=
+ANTHROPIC_BASE_URL=
+
+# ==============================================================================
+# Moltbot / Sandbox Configuration
+# ==============================================================================
+
+# Development Mode (Set to 'true' to skip authentication and pairing)
+DEV_MODE=true
+
+# Bind Mode for Moltbot ('lan' or 'local')
+CLAWDBOT_BIND_MODE=local
+
+# Gateway Token (Optional - mapped to CLAWDBOT_GATEWAY_TOKEN in container)
+MOLTBOT_GATEWAY_TOKEN=
+
+# Sandbox Lifecycle
+# How long before the sandbox sleeps being idle. 
+# Options: 'never' (default), '10m', '1h'
+SANDBOX_SLEEP_AFTER=never
+
+# Enable Debug Routes (/moltbot/debug/*)
+# WARNING: Exposes internal debug endpoints
+DEBUG_ROUTES=false
+
+# CDP / Browser Rendering
+# Shared secret for securing the CDP endpoint
+CDP_SECRET=some-secret-string-change-me
+
+# Public URL of the worker (needed for CDP connection instructions)
+WORKER_URL=https://ai.charl.dev
+
+# ==============================================================================
+# Channel Integrations
+# ==============================================================================
+
+# Telegram
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_DM_POLICY=pairing
+
+# Discord
+DISCORD_BOT_TOKEN=
+DISCORD_DM_POLICY=pairing
+
+# Slack
+SLACK_BOT_TOKEN=
+SLACK_APP_TOKEN=
+
+# WhatsApp
+WHATSAPP_TOKEN=
+
+# ==============================================================================
+# Security & Access
+# ==============================================================================
+
+# Cloudflare Access Configuration (for Admin Routes)
+CF_ACCESS_TEAM_DOMAIN=myteam.cloudflareaccess.com
+CF_ACCESS_AUD=
+
+# ==============================================================================
+# R2 Storage (Moltbot Persistence)
+# ==============================================================================
+
+# Credentials for mounting R2 bucket (set via wrangler secret in prod)
+# Required for persistent agent state and backups
+R2_ACCESS_KEY_ID=
+R2_SECRET_ACCESS_KEY=
+CF_ACCOUNT_ID=

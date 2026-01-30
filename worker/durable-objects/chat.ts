@@ -147,7 +147,7 @@ export class Chat extends AIChatAgent<AgentEnv> {
 
             // Ensure gateway is healthy (start if needed)
             try {
-                await ensureMoltbotGateway(sandbox, this.env, secrets as Record<string, string>);
+                await ensureMoltbotGateway(sandbox, this.env, secrets as Record<string, string>, this.name);
             } catch (error) {
                 console.error("Failed to ensure moltbot gateway:", error);
                 return new Response("Moltbot Gateway Failed", { status: 503 });

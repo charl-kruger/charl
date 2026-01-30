@@ -52,7 +52,8 @@ export async function findExistingMoltbotProcess(
 export async function ensureMoltbotGateway(
   sandbox: Sandbox,
   env: AgentEnv,
-  agentSecrets: Record<string, string> = {}
+  agentSecrets: Record<string, string> = {},
+  agentId: string = "default"
 ): Promise<Process> {
   // Mount R2 storage for persistent data (non-blocking if not configured)
   // R2 is used as a backup - the startup script will restore from it on boot
@@ -99,7 +100,13 @@ export async function ensureMoltbotGateway(
 
   // Start a new Moltbot gateway
   console.log("Starting new Moltbot gateway...");
-  const envVars = { ...buildEnvVars(env), ...agentSecrets };
+
+  const backupDir = `/data/moltbot/${agentId}`;
+  const envVars = {
+    ...buildEnvVars(env),
+    ...agentSecrets,
+    MOLTBOT_BACKUP_DIR: backupDir
+  };
   const command = "/usr/local/bin/start-moltbot.sh";
 
   console.log("Starting process with command:", command);

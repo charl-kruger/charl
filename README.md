@@ -59,29 +59,29 @@ graph TD
     classDef agent fill:#e1e1e1,color:#333,stroke:#333,stroke-width:1px;
     classDef client fill:#f9fafb,color:#333,stroke:#333,stroke-width:1px;
 
-    User(User / IDE / Claude):::client
+    User("User / IDE / Claude"):::client
     
     subgraph Charl_Cloud ["☁️ Charl (The Platform)"]
         direction TB
-        Router[Orchestrator / Router]:::platform
+        Router["Orchestrator / Router"]:::platform
         
         subgraph Agent_1 ["Agent 1: 'The DevOps Eng'"]
-           OC1[🦁 OpenClaw <br/>(Self-Configuring)]:::agent
+           OC1["🦁 OpenClaw <br/>(Self-Configuring)"]:::agent
         end
         
         subgraph Agent_2 ["Agent 2: 'The Researcher'"]
-           OC2[🦁 OpenClaw <br/>(Browsing Web)]:::agent
+           OC2["🦁 OpenClaw <br/>(Browsing Web)"]:::agent
         end
         
         subgraph Agent_3 ["Agent 3: 'Home Automation'"]
-           OC3[🦁 OpenClaw <br/>(IoT Control)]:::agent
+           OC3["🦁 OpenClaw <br/>(IoT Control)"]:::agent
         end
     end
 
     User -->|HTTP / MCP| Router
-    Router -->|Routes Task| Agent_1
-    Router -->|Routes Task| Agent_2
-    Router -->|Routes Task| Agent_3
+    Router -->|"Routes Task"| Agent_1
+    Router -->|"Routes Task"| Agent_2
+    Router -->|"Routes Task"| Agent_3
 ```
 
 ---

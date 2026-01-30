@@ -5,17 +5,18 @@
   "tsx": true,
   "tailwind": {
     "config": "",
-    "css": "src/styles.css",
-    "baseColor": "zinc",
+    "css": "src/index.css",
+    "baseColor": "neutral",
     "cssVariables": true,
     "prefix": ""
   },
+  "iconLibrary": "lucide",
   "aliases": {
     "components": "@/components",
     "utils": "@/lib/utils",
-    "ui": "@/components",
+    "ui": "@/components/ui",
     "lib": "@/lib",
     "hooks": "@/hooks"
   },
-  "iconLibrary": "phosphor"
+  "registries": {}
 }

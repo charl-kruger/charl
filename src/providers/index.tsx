@@ -1,10 +1,9 @@
-import { ModalProvider } from "@/providers/ModalProvider";
-import { TooltipProvider } from "@/providers/TooltipProvider";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 export const Providers = ({ children }: { children: React.ReactNode }) => {
   return (
     <TooltipProvider>
-      <ModalProvider>{children}</ModalProvider>
+      {children}
     </TooltipProvider>
   );
 };

@@ -1,8 +1,8 @@
 import { useState } from "react";
 import type { ToolUIPart } from "ai";
 import { RobotIcon, CaretDownIcon } from "@phosphor-icons/react";
-import { Button } from "@/components/button/Button";
-import { Card } from "@/components/card/Card";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { APPROVAL } from "@/shared";
 
 interface ToolResultWithContent {
@@ -86,14 +86,14 @@ export function ToolInvocationCard({
           {needsConfirmation && toolUIPart.state === "input-available" && (
             <div className="flex gap-2 justify-end">
               <Button
-                variant="primary"
+                variant="default"
                 size="sm"
                 onClick={() => onSubmit({ toolCallId, result: APPROVAL.NO })}
               >
                 Reject
               </Button>
               <Button
-                variant="primary"
+                variant="default"
                 size="sm"
                 onClick={() => onSubmit({ toolCallId, result: APPROVAL.YES })}
               >

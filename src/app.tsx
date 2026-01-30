@@ -7,11 +7,11 @@ import type { UIMessage } from "@ai-sdk/react";
 import type { tools } from "../worker/tools";
 
 // Component imports
-import { Button } from "@/components/button/Button";
-import { Card } from "@/components/card/Card";
-import { Avatar } from "@/components/avatar/Avatar";
-import { Toggle } from "@/components/toggle/Toggle";
-import { Textarea } from "@/components/textarea/Textarea";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { MemoizedMarkdown } from "@/components/memoized-markdown";
 import { ToolInvocationCard } from "@/components/tool-invocation-card/ToolInvocationCard";
 
@@ -174,27 +174,25 @@ export default function Chat() {
           <div className="flex items-center gap-2 mr-2">
             <Button
               variant="ghost"
-              size="md"
-              shape="square"
-              className="rounded-full h-9 w-9 text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-50"
+              size="icon"
+              className="rounded-full text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-50"
               onClick={launchMoltbot}
               title="Launch Moltbot Dashboard"
             >
               <DesktopIcon size={20} />
             </Button>
             <BugIcon size={16} />
-            <Toggle
-              toggled={showDebug}
+            <Switch
+              checked={showDebug}
               aria-label="Toggle debug mode"
-              onClick={() => setShowDebug((prev) => !prev)}
+              onCheckedChange={(checked) => setShowDebug(checked)}
             />
           </div>
 
           <Button
             variant="ghost"
-            size="md"
-            shape="square"
-            className="rounded-full h-9 w-9"
+            size="icon"
+            className="rounded-full"
             onClick={toggleTheme}
           >
             {theme === "dark" ? <SunIcon size={20} /> : <MoonIcon size={20} />}
@@ -202,9 +200,8 @@ export default function Chat() {
 
           <Button
             variant="ghost"
-            size="md"
-            shape="square"
-            className="rounded-full h-9 w-9"
+            size="icon"
+            className="rounded-full"
             onClick={clearHistory}
           >
             <TrashIcon size={20} />
@@ -256,12 +253,14 @@ export default function Chat() {
                   className={`flex ${isUser ? "justify-end" : "justify-start"}`}
                 >
                   <div
-                    className={`flex gap-2 max-w-[85%] ${
-                      isUser ? "flex-row-reverse" : "flex-row"
-                    }`}
+                    className={`flex gap-2 max-w-[85%] ${isUser ? "flex-row-reverse" : "flex-row"
+                      }`}
                   >
                     {showAvatar && !isUser ? (
-                      <Avatar username={"AI"} className="shrink-0" />
+                      <Avatar className="shrink-0">
+                        <AvatarFallback>AI</AvatarFallback>
+                        <AvatarImage src="/ai-avatar.png" alt="AI" />
+                      </Avatar>
                     ) : (
                       !isUser && <div className="w-8" />
                     )}
@@ -274,23 +273,21 @@ export default function Chat() {
                               // biome-ignore lint/suspicious/noArrayIndexKey: immutable index
                               <div key={i}>
                                 <Card
-                                  className={`p-3 rounded-md bg-neutral-100 dark:bg-neutral-900 ${
-                                    isUser
-                                      ? "rounded-br-none"
-                                      : "rounded-bl-none border-assistant-border"
-                                  } ${
-                                    part.text.startsWith("scheduled message")
+                                  className={`p-3 rounded-md bg-neutral-100 dark:bg-neutral-900 ${isUser
+                                    ? "rounded-br-none"
+                                    : "rounded-bl-none border-assistant-border"
+                                    } ${part.text.startsWith("scheduled message")
                                       ? "border-accent/50"
                                       : ""
-                                  } relative`}
+                                    } relative`}
                                 >
                                   {part.text.startsWith(
                                     "scheduled message"
                                   ) && (
-                                    <span className="absolute -top-3 -left-2 text-base">
-                                      🕒
-                                    </span>
-                                  )}
+                                      <span className="absolute -top-3 -left-2 text-base">
+                                        🕒
+                                      </span>
+                                    )}
                                   <MemoizedMarkdown
                                     id={`${m.id}-${i}`}
                                     content={part.text.replace(
@@ -300,9 +297,8 @@ export default function Chat() {
                                   />
                                 </Card>
                                 <p
-                                  className={`text-xs text-muted-foreground mt-1 ${
-                                    isUser ? "text-right" : "text-left"
-                                  }`}
+                                  className={`text-xs text-muted-foreground mt-1 ${isUser ? "text-right" : "text-left"
+                                    }`}
                                 >
                                   {formatTime(
                                     m.metadata?.createdAt
@@ -383,7 +379,7 @@ export default function Chat() {
                     ? "Please respond to the tool confirmation above..."
                     : "Send a message..."
                 }
-                className="flex w-full border border-neutral-200 dark:border-neutral-700 px-3 py-2  ring-offset-background placeholder:text-neutral-500 dark:placeholder:text-neutral-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-300 dark:focus-visible:ring-neutral-700 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-neutral-900 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm min-h-[24px] max-h-[calc(75dvh)] overflow-hidden resize-none rounded-2xl text-base! pb-10 dark:bg-neutral-900"
+                className="w-full min-h-[24px] max-h-[calc(75dvh)] resize-none rounded-2xl text-base! pb-10"
                 value={agentInput}
                 onChange={(e) => {
                   handleAgentInputChange(e);
@@ -408,23 +404,25 @@ export default function Chat() {
               />
               <div className="absolute bottom-0 right-0 p-2 w-fit flex flex-row justify-end">
                 {status === "submitted" || status === "streaming" ? (
-                  <button
+                  <Button
                     type="button"
                     onClick={stop}
-                    className="inline-flex items-center cursor-pointer justify-center gap-2 whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-primary text-primary-foreground hover:bg-primary/90 rounded-full p-1.5 h-fit border border-neutral-200 dark:border-neutral-800"
+                    size="icon"
+                    className="rounded-full h-8 w-8"
                     aria-label="Stop generation"
                   >
                     <StopIcon size={16} />
-                  </button>
+                  </Button>
                 ) : (
-                  <button
+                  <Button
                     type="submit"
-                    className="inline-flex items-center cursor-pointer justify-center gap-2 whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-primary text-primary-foreground hover:bg-primary/90 rounded-full p-1.5 h-fit border border-neutral-200 dark:border-neutral-800"
+                    size="icon"
+                    className="rounded-full h-8 w-8"
                     disabled={pendingToolCallConfirmation || !agentInput.trim()}
                     aria-label="Send message"
                   >
                     <PaperPlaneTiltIcon size={16} />
-                  </button>
+                  </Button>
                 )}
               </div>
             </div>

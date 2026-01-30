@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
 // Phosphor icons
-import { Robot, Plus, ArrowRight, Broadcast, WifiHigh, WifiSlash } from "@phosphor-icons/react";
+import { Robot, Plus, ArrowRight, Broadcast, WifiHigh, WifiSlash, BookOpen } from "@phosphor-icons/react";
 
 
 interface Agent {
@@ -116,6 +116,9 @@ export function HomePage() {
                         Fleet Status
                     </h2>
                     <div className="flex gap-2">
+                        <Button variant="outline" className="gap-2" onClick={() => window.location.href = "/docs"}>
+                            <BookOpen size={16} /> Docs
+                        </Button>
                         <Dialog open={isBroadcastOpen} onOpenChange={setIsBroadcastOpen}>
                             <DialogTrigger asChild>
                                 <Button variant="outline" className="gap-2">

@@ -1,6 +1,7 @@
 import { createRoot } from "react-dom/client";
 import App from "./app";
 import { HomePage } from "./pages/home-page";
+import { DocsPage } from "./pages/docs";
 import { Providers } from "@/providers";
 import "./index.css";
 
@@ -15,6 +16,8 @@ if (rootElement) {
   let component;
   if (path === "/" || path === "/index.html") {
     component = <HomePage />;
+  } else if (path === "/docs") {
+    component = <DocsPage />;
   } else if (path.startsWith("/agents/")) {
     component = <App />;
   } else {

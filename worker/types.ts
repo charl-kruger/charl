@@ -5,6 +5,7 @@
  * Extends the basic Env with optional configuration keys used by Moltbot
  */
 export interface AgentEnv extends Env {
+  ASSETS: Fetcher; // Cloudflare Assets binding
   // AI Gateway configuration (preferred)
   AI_GATEWAY_API_KEY?: string; // API key for the provider configured in AI Gateway
   AI_GATEWAY_BASE_URL?: string; // AI Gateway URL (e.g., https://gateway.ai.cloudflare.com/v1/{account_id}/{gateway_id}/anthropic)

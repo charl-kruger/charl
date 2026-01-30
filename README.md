@@ -51,6 +51,39 @@ A living, stateful entity running in a secure Sandbox. It possesses:
 *   **The Eyes**: Serverless Puppeteer to browse the web and verify reality.
 *   **The Will**: The autonomy to fix its own problems.
 
+### 🧠 The Hive Mind Visualization
+
+```mermaid
+graph TD
+    classDef platform fill:#f48120,color:#fff,stroke:#333,stroke-width:2px;
+    classDef agent fill:#e1e1e1,color:#333,stroke:#333,stroke-width:1px;
+    classDef client fill:#f9fafb,color:#333,stroke:#333,stroke-width:1px;
+
+    User(User / IDE / Claude):::client
+    
+    subgraph Charl_Cloud ["☁️ Charl (The Platform)"]
+        direction TB
+        Router[Orchestrator / Router]:::platform
+        
+        subgraph Agent_1 ["Agent 1: 'The DevOps Eng'"]
+           OC1[🦁 OpenClaw <br/>(Self-Configuring)]:::agent
+        end
+        
+        subgraph Agent_2 ["Agent 2: 'The Researcher'"]
+           OC2[🦁 OpenClaw <br/>(Browsing Web)]:::agent
+        end
+        
+        subgraph Agent_3 ["Agent 3: 'Home Automation'"]
+           OC3[🦁 OpenClaw <br/>(IoT Control)]:::agent
+        end
+    end
+
+    User -->|HTTP / MCP| Router
+    Router -->|Routes Task| Agent_1
+    Router -->|Routes Task| Agent_2
+    Router -->|Routes Task| Agent_3
+```
+
 ---
 
 ## 🚀 Why You'll Love It

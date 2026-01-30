@@ -329,19 +329,9 @@ app.all("*", async (c) => {
   }
 
   // SPA Fallback: Serve index.html for unknown routes
-  // This allows client-side routing (e.g. /docs) to work
-  try {
-    const url = new URL(c.req.url);
-    // Try to fetch the exact asset first (unlikely if we are here, but good practice)
-    let asset = await c.env.ASSETS.fetch(c.req.raw);
-    if (asset.status === 404) {
-      // Fallback to index.html
-      asset = await c.env.ASSETS.fetch(new Request(url.origin + "/index.html", c.req.raw));
-    }
-    return asset;
-  } catch (e) {
-    return c.text("Not found", 404);
-  }
+  // The 'not_found_handling: single-page-application' in wrangler.jsonc 
+  // ensures env.ASSETS.fetch() returns index.html for non-existent assets.
+  return c.env.ASSETS.fetch(c.req.raw);
 });
 
 // Mount MCP routes

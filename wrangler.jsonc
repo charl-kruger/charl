@@ -24,7 +24,8 @@
   "preview_urls": false,
   "assets": {
     "directory": "dist/client",
-    "binding": "ASSETS"
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application"
   },
   "durable_objects": {
     "bindings": [

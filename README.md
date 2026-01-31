@@ -77,7 +77,28 @@ Deploy the entire platform to your Cloudflare account in seconds.
 npm run deploy
 ```
 
-### 2. Access the Dashboard
+```bash
+npm run deploy
+```
+
+### 2. Configure Secrets (Critical)
+After deployment, you **must** set the following secrets to avoid "WebSocket connection failed" errors:
+
+```bash
+# 1. Your OpenAI Key (Required)
+npx wrangler secret put OPENAI_API_KEY
+
+# 2. Development Mode (Recommended for first run)
+# Skips strict Cloudflare Access checks
+npx wrangler secret put DEV_MODE
+# Value: true
+
+# 3. Gateway Token (Random string)
+npx wrangler secret put MOLTBOT_GATEWAY_TOKEN
+# Value: any-random-string
+```
+
+### 3. Access the Dashboard
 Visit your deployed worker URL (e.g., `https://charl.your-subdomain.workers.dev`).
 *   **Create Agents**: Spin up new workers with a click.
 *   **Monitor Fleet**: See real-time status and heartbeats.

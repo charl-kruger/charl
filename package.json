@@ -101,5 +101,33 @@
     "vaul": "^1.1.2",
     "workers-ai-provider": "^3.0.2",
     "zod": "^4.3.6"
+  },
+  "cloudflare": {
+    "bindings": {
+      "OPENAI_API_KEY": {
+        "description": "Your OpenAI API Key (starts with sk-proj-...) for AI inference."
+      },
+      "MOLTBOT_GATEWAY_TOKEN": {
+        "description": "A random secret token to secure the Moltbot gateway communication."
+      },
+      "CF_ACCESS_TEAM_DOMAIN": {
+        "description": "Your Cloudflare Access team domain (e.g., myteam.cloudflareaccess.com) for securing admin routes."
+      },
+      "CF_ACCESS_AUD": {
+        "description": "The Application Audience (AUD) tag from your Cloudflare Access Policy."
+      },
+      "R2_ACCESS_KEY_ID": {
+        "description": "R2 Access Key ID for backups (create via R2 dashboard)."
+      },
+      "R2_SECRET_ACCESS_KEY": {
+        "description": "R2 Secret Access Key for backups."
+      },
+      "CF_ACCOUNT_ID": {
+        "description": "Your Cloudflare Account ID."
+      },
+      "CDP_SECRET": {
+        "description": "A shared secret string to secure the internal CDP endpoint."
+      }
+    }
   }
 }

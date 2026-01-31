@@ -19,6 +19,7 @@ export default defineWorkersConfig({
       workers: {
         wrangler: { configPath: "./wrangler.jsonc" }
       }
-    }
+    },
+    exclude: ["**/node_modules/**", "**/dist/**", "**/refrence-apps/**"]
   }
 });

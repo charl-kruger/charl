@@ -2,7 +2,7 @@
 
 ![npm i agents command](./npm-agents-banner.svg)
 
-<a href="https://deploy.workers.cloudflare.com/?url=https://github.com/cloudflare/agents-starter"><img src="https://deploy.workers.cloudflare.com/button" alt="Deploy to Cloudflare"/></a>
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/cloudflare/agents-starter)
 
 **Technically**, Charl is a cloud-native orchestration platform for **OpenClaw** agents.
 **Psychologically**, it is the end of "DevOps Anxiety."

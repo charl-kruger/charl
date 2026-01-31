@@ -11,6 +11,7 @@ import {
   browsePageDef
 } from "./tools";
 import { getSandbox } from "@cloudflare/sandbox";
+import { z } from "zod";
 
 type State = {
   // Minimal state
@@ -91,5 +92,39 @@ export class MoltbotMcp extends McpAgent<AgentEnv, State, HonoVariables> {
     register("get_container_logs", getContainerLogsDef);
     register("inspect_container", inspectContainerDef);
     register("browse_page", browsePageDef);
+
+    // Orchestration Tools (Proxy to Registry)
+    this.server.tool(
+      "spawn_agent",
+      "Create or wake up a generic Chat Agent with specific instructions.",
+      {
+        name: z.string().describe("Unique name for the agent"),
+        instruction: z.string().describe("Initial system instruction")
+      },
+      async (args) => {
+        // @ts-ignore - Generic binding lookup
+        const id = this.env.Registry.idFromName("default");
+        // @ts-ignore
+        const registry = this.env.Registry.get(id);
+        const result = await registry.spawn(args.name, args.instruction);
+        return { content: [{ type: "text", text: JSON.stringify(result) }] };
+      }
+    );
+
+    this.server.tool(
+      "broadcast",
+      "Send a message to ALL registered agents.",
+      {
+        message: z.string().describe("The message to broadcast")
+      },
+      async (args) => {
+        // @ts-ignore
+        const id = this.env.Registry.idFromName("default");
+        // @ts-ignore
+        const registry = this.env.Registry.get(id);
+        const result = await registry.broadcast(args.message);
+        return { content: [{ type: "text", text: JSON.stringify(result) }] };
+      }
+    );
   }
 }

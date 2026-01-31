@@ -79,6 +79,31 @@ app.all("/api/registry/*", async (c) => {
   return stub.fetch(c.req.raw);
 });
 
+// Route /agents/registry to the Registry DO (for Chat/AI features)
+// This must come BEFORE the generic /agents/:name route if that was implicit in wildcard,
+// or we can handle it here implicitly if routeAgentRequest handles "registry" correctly.
+// However, routeAgentRequest default behavior might map "registry" to "Chat" namespace.
+// So we intercept it explicitly here.
+app.all("/agents/registry/*", async (c) => {
+  const id = c.env.Registry.idFromName("default");
+  const stub = c.env.Registry.get(id);
+  // Rewrite path? The AIChatAgent expects /messages, /connect etc. 
+  // If we forward /agents/registry/messages -> /messages, it works out of the box.
+  const url = new URL(c.req.url);
+  // Check if we need to rewrite path for the DO
+  // routeAgentRequest typically does this mapping internaly.
+  // Let's manually rewrite: /agents/registry/foo -> /foo
+  // But wait, standard Agents SDK might expect /agents/registry prefix if configured?
+  // Actually, AIChatAgent base class usually handles root-relative paths.
+
+  // STRATEGY: Strip /agents/registry prefix
+  if (url.pathname.startsWith("/agents/registry")) {
+    url.pathname = url.pathname.replace("/agents/registry", "") || "/";
+  }
+  const newReq = new Request(url, c.req.raw);
+  return stub.fetch(newReq);
+});
+
 // Fallback handler for Agents SDK routing and SPA
 app.all("*", async (c) => {
   // 1. Validate Env on first request (fail fast-ish)

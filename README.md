@@ -1,7 +1,5 @@
 # 🧶 Charl: Technology That Feels Like Magic
 
-![npm i agents command](./npm-agents-banner.svg)
-
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/cloudflare/agents-starter)
 
 **Technically**, Charl is a cloud-native orchestration platform for **OpenClaw** agents.

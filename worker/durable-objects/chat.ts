@@ -14,12 +14,14 @@ import {
     createUIMessageStreamResponse,
     type ToolSet
 } from "ai";
-import { openai } from "@ai-sdk/openai";
+// import { openai } from "@ai-sdk/openai";
+import { createWorkersAI } from "workers-ai-provider";
 import { processToolCalls, cleanupMessages } from "../utils";
 import { tools, executions } from "../tools";
 // import { env } from "cloudflare:workers";
 
-const model = openai("gpt-4o-2024-11-20");
+const modelName = "@cf/meta/llama-3-8b-instruct";
+// const model = openai("gpt-4o-2024-11-20");
 // Cloudflare AI Gateway
 // const openai = createOpenAI({
 //   apiKey: env.OPENAI_API_KEY,
@@ -74,10 +76,13 @@ export class Chat extends AIChatAgent<AgentEnv> {
     async fetch(request: Request) {
         const url = new URL(request.url);
 
-        // Send unique heartbeat for this agent
+        // Send unique heartbeat for this agent, but NOT for internal system messages
+        // to avoid infinite loops (Registry Broadcast -> Chat -> Heartbeat -> Registry Update -> Broadcast)
         try {
-            // Fire and forget heartbeat to not block the request
-            this.ctx.waitUntil(this.sendHeartbeat());
+            if (url.pathname !== "/system/instruction") {
+                // Fire and forget heartbeat to not block the request
+                this.ctx.waitUntil(this.sendHeartbeat());
+            }
         } catch (e) {
             // Ignore heartbeat errors
         }
@@ -86,6 +91,16 @@ export class Chat extends AIChatAgent<AgentEnv> {
         if (url.pathname === "/system/instruction" && request.method === "POST") {
             const body = await request.json() as { message: string };
             if (body.message) {
+                // Filter out internal state broadcasts from the framework (noise)
+                const msg = body.message;
+                const isInternalState = msg.includes('"type":"cf_agent_state"') ||
+                    msg.includes('"type":"cf_agent_mcp_servers"') ||
+                    msg.includes('SYSTEM BROADCAST: {"state"');
+
+                if (isInternalState) {
+                    return new Response("Ignored internal broadcast", { status: 200 });
+                }
+
                 await this.saveMessages([
                     ...this.messages,
                     {
@@ -194,12 +209,145 @@ export class Chat extends AIChatAgent<AgentEnv> {
 
             // Handle WebSocket Proxy
             if (request.headers.get("Upgrade") === "websocket") {
-                const response = await sandbox.wsConnect(request, MOLTBOT_PORT);
-                return response;
+                console.log("[WS] Proxying WebSocket connection to Moltbot");
+
+                // Get WebSocket connection to the container
+                const containerResponse = await sandbox.wsConnect(request, MOLTBOT_PORT);
+
+                // Get the container-side WebSocket
+                const containerWs = containerResponse.webSocket;
+                if (!containerWs) {
+                    console.error("[WS] No WebSocket in container response - falling back to direct proxy");
+                    return containerResponse;
+                }
+
+                // Create a WebSocket pair for the client
+                const [clientWs, serverWs] = Object.values(new WebSocketPair());
+
+                // Accept both WebSockets
+                serverWs.accept();
+                containerWs.accept();
+
+                // Helper to transform error messages
+                const transformErrorMessage = (message: string, host: string): string => {
+                    // Fix pairing/token errors to point to the correct admin UI
+                    // Note: The Admin UI is likely at /agents/{name}/moltbot/_admin/
+                    // But for simple "pairing required", we might just want to guide them there.
+                    const adminPath = `/agents/${this.name}/moltbot/_admin/`;
+
+                    if (message.includes("gateway token missing") || message.includes("gateway token mismatch")) {
+                        return `Invalid or missing token. Visit https://${host}${adminPath}?token={YOUR_TOKEN}`;
+                    }
+
+                    if (message.includes("pairing required")) {
+                        return `Pairing required. Visit https://${host}${adminPath}`;
+                    }
+                    return message;
+                };
+
+                // Relay messages from client to container
+                serverWs.addEventListener("message", (event) => {
+                    if (containerWs.readyState === WebSocket.OPEN) {
+                        containerWs.send(event.data);
+                    }
+                });
+
+                // Relay messages from container to client, with error transformation
+                containerWs.addEventListener("message", (event) => {
+                    let data = event.data;
+
+                    // Try to intercept and transform error messages
+                    if (typeof data === "string") {
+                        try {
+                            const parsed = JSON.parse(data);
+                            if (parsed.error?.message) {
+                                parsed.error.message = transformErrorMessage(parsed.error.message, url.host);
+                                data = JSON.stringify(parsed);
+                            }
+                        } catch (e) {
+                            // Not JSON or parse error, pass through original data
+                        }
+                    }
+
+                    if (serverWs.readyState === WebSocket.OPEN) {
+                        serverWs.send(data);
+                    }
+                });
+
+                // Handle close events
+                serverWs.addEventListener("close", (event) => {
+                    containerWs.close(event.code, event.reason);
+                });
+
+                containerWs.addEventListener("close", (event) => {
+                    // Transform the close reason if needed
+                    let reason = transformErrorMessage(event.reason, url.host);
+                    // Truncate to 123 bytes max for WebSocket spec
+                    if (reason.length > 123) {
+                        reason = reason.slice(0, 120) + "...";
+                    }
+                    serverWs.close(event.code, reason);
+                });
+
+                // Handle errors
+                serverWs.addEventListener("error", (event) => {
+                    containerWs.close(1011, "Client error");
+                });
+
+                containerWs.addEventListener("error", (event) => {
+                    serverWs.close(1011, "Container error");
+                });
+
+                return new Response(null, {
+                    status: 101,
+                    webSocket: clientWs,
+                });
             }
 
-            // Standard HTTP Proxy
-            return sandbox.containerFetch(request, MOLTBOT_PORT);
+            // Standard HTTP Proxy with Path Rewriting & HTML Injection
+            // 1. Rewrite the URL to strip the agent prefix so the container sees requests at root
+            // const url = new URL(request.url); <--- REMOVED (Shadowing caused TDZ)
+
+            // Expected path: /agents/{agentName}/moltbot/... -> /...
+            // But internal DO path might differ depending on how it's called.
+            // We know we are in: if (url.pathname.includes("/moltbot"))
+            const moltbotIndex = url.pathname.indexOf("/moltbot");
+            const subPath = url.pathname.substring(moltbotIndex + "/moltbot".length) || "/";
+
+            const proxyUrl = new URL(url);
+            proxyUrl.pathname = subPath; // Map /moltbot/foo -> /foo
+            const proxyReq = new Request(proxyUrl, request);
+
+            const response = await sandbox.containerFetch(proxyReq, MOLTBOT_PORT);
+
+            // 2. Intercept HTML to inject configuration and fix asset paths
+            // The UI expects to be at root, but is served at /agents/{name}/moltbot/
+            const contentType = response.headers.get("Content-Type") || "";
+            if (contentType.includes("text/html")) {
+                let html = await response.text();
+
+                // Inject Base Path Config
+                const basePath = `/agents/${this.name}/moltbot`;
+                const scriptInject = `<script>window.__OPENCLAW_CONTROL_UI_BASE_PATH__=${JSON.stringify(basePath)};</script>`;
+                html = html.replace("<head>", `<head>${scriptInject}`);
+
+                // Fix Absolute Asset Paths (Vite usually outputs /assets/...)
+                // We change src="/assets/..." to src="assets/..." (relative) 
+                // combining with a <base> tag might be safer, but let's try regex replacement first
+                // as injecting <base> can break in-page anchors.
+                // Actually, simplest is to prefix with the basePath.
+                html = html.replace(/(src|href)="(?!https?:\/\/)/g, `$1="${basePath}/`);
+                // Fix double slashes if any
+                html = html.replace(`${basePath}//`, `${basePath}/`);
+
+                return new Response(html, {
+                    status: response.status,
+                    statusText: response.statusText,
+                    headers: response.headers
+                });
+            }
+
+            return response;
         }
 
         return super.fetch(request);
@@ -223,7 +371,7 @@ export class Chat extends AIChatAgent<AgentEnv> {
         // Collect all tools, including MCP tools
         const allTools = {
             ...tools,
-            ...this.mcp.getAITools()
+            // ...this.mcp.getAITools()
         };
 
         const stream = createUIMessageStream({
@@ -240,6 +388,8 @@ export class Chat extends AIChatAgent<AgentEnv> {
                     executions
                 });
 
+                const workersai = createWorkersAI({ binding: this.env.AI });
+
                 const result = streamText({
                     system: `You are a helpful assistant that can do various tasks... 
           
@@ -251,7 +401,7 @@ If the user asks to schedule a task, use the schedule tool to schedule the task.
 `,
 
                     messages: await convertToModelMessages(processedMessages),
-                    model,
+                    model: workersai(modelName as any),
                     tools: allTools,
                     // Type boundary: streamText expects specific tool types, but base class uses ToolSet
                     // This is safe because our tools satisfy ToolSet interface (verified by 'satisfies' in tools.ts)

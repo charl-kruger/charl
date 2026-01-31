@@ -76,11 +76,16 @@ export default function Chat() {
 
   // Extract agent name from URL /agents/:name
   const match = window.location.pathname.match(/^\/agents\/([^/]+)/);
-  const agentName = match ? match[1] : "chat";
+  const routeParam = match ? match[1] : "chat";
 
-  const agent = useAgent({
-    agent: agentName
-  });
+  // If routeParam is 'registry', we talk to Registry agent.
+  // If routeParam is anything else, we assume it's a 'chat' agent with that name.
+  const isRegistry = routeParam === "registry";
+  const agentConfig = isRegistry
+    ? { agent: "registry", name: "default" }
+    : { agent: "chat", name: routeParam };
+
+  const agent = useAgent(agentConfig);
 
   const [agentInput, setAgentInput] = useState("");
   const handleAgentInputChange = (
@@ -147,15 +152,19 @@ export default function Chat() {
     // Construct the proxy URL
     // agent.name should be available from the agent object
     const agentName = agent.name || "default";
-    const url = `/agents/chat/${agentName}/moltbot/`;
+    const url = `/agents/${agentName}/moltbot/`;
     window.open(url, "_blank");
   };
 
   return (
-    <div className="h-screen w-full p-4 flex justify-center items-center bg-fixed overflow-hidden">
+    <div className="h-screen w-full flex bg-fixed overflow-hidden bg-white dark:bg-neutral-950">
       <HasOpenAIKey />
-      <div className="h-[calc(100vh-2rem)] w-full mx-auto max-w-lg flex flex-col shadow-xl rounded-md overflow-hidden relative border border-neutral-300 dark:border-neutral-800">
-        <div className="px-4 py-3 border-b border-neutral-300 dark:border-neutral-800 flex items-center gap-3 sticky top-0 z-10">
+
+      {/* Left Side: Chat Interface */}
+      <div className="flex-1 flex flex-col h-full border-r border-neutral-200 dark:border-neutral-800 relative z-10 transition-all duration-300">
+
+        {/* Header */}
+        <div className="px-4 py-3 border-b border-neutral-200 dark:border-neutral-800 flex items-center gap-3 bg-white/80 dark:bg-neutral-950/80 backdrop-blur-sm sticky top-0 z-20">
           <div className="flex items-center justify-center h-8 w-8">
             <svg
               width="28px"
@@ -176,6 +185,7 @@ export default function Chat() {
 
           <div className="flex-1">
             <h2 className="font-semibold text-base">AI Chat Agent</h2>
+            {agent.name && <p className="text-xs text-muted-foreground">{agent.name}</p>}
           </div>
 
           <div className="flex items-center gap-2 mr-2">
@@ -184,7 +194,7 @@ export default function Chat() {
               size="icon"
               className="rounded-full text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-50"
               onClick={launchMoltbot}
-              title="Launch Moltbot Dashboard"
+              title="Open Moltbot Dashboard in New Tab"
             >
               <DesktopIcon size={20} />
             </Button>
@@ -233,29 +243,18 @@ export default function Chat() {
         />
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-24 max-h-[calc(100vh-10rem)]">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-24">
           {agentMessages.length === 0 && (
             <div className="h-full flex items-center justify-center">
-              <Card className="p-6 max-w-md mx-auto bg-neutral-100 dark:bg-neutral-900">
+              <Card className="p-6 max-w-md mx-auto bg-neutral-50 dark:bg-neutral-900/50 border-none shadow-sm">
                 <div className="text-center space-y-4">
                   <div className="bg-[#F48120]/10 text-[#F48120] rounded-full p-3 inline-flex">
                     <RobotIcon size={24} />
                   </div>
                   <h3 className="font-semibold text-lg">Welcome to AI Chat</h3>
                   <p className="text-muted-foreground text-sm">
-                    Start a conversation with your AI assistant. Try asking
-                    about:
+                    Start a conversation with your AI assistant. It can control the Moltbot instance on the right!
                   </p>
-                  <ul className="text-sm text-left space-y-2">
-                    <li className="flex items-center gap-2">
-                      <span className="text-[#F48120]">•</span>
-                      <span>Weather information for any city</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span className="text-[#F48120]">•</span>
-                      <span>Local time in different locations</span>
-                    </li>
-                  </ul>
                 </div>
               </Card>
             </div>
@@ -281,7 +280,7 @@ export default function Chat() {
                       }`}
                   >
                     {showAvatar && !isUser ? (
-                      <Avatar className="shrink-0">
+                      <Avatar className="shrink-0 h-8 w-8">
                         <AvatarFallback>AI</AvatarFallback>
                         <AvatarImage src="/ai-avatar.png" alt="AI" />
                       </Avatar>
@@ -289,7 +288,7 @@ export default function Chat() {
                       !isUser && <div className="w-8" />
                     )}
 
-                    <div>
+                    <div className="flex-1 min-w-0">
                       <div>
                         {m.parts?.map((part, i) => {
                           if (part.type === "text") {
@@ -297,13 +296,13 @@ export default function Chat() {
                               // biome-ignore lint/suspicious/noArrayIndexKey: immutable index
                               <div key={i}>
                                 <Card
-                                  className={`p-3 rounded-md bg-neutral-100 dark:bg-neutral-900 ${isUser
-                                    ? "rounded-br-none"
-                                    : "rounded-bl-none border-assistant-border"
+                                  className={`p-3 rounded-2xl ${isUser
+                                    ? "bg-[#F48120] text-white rounded-br-none border-none"
+                                    : "bg-neutral-100 dark:bg-neutral-900 rounded-bl-none border-none"
                                     } ${part.text.startsWith("scheduled message")
                                       ? "border-accent/50"
                                       : ""
-                                    } relative`}
+                                    } relative text-sm`}
                                 >
                                   {part.text.startsWith(
                                     "scheduled message"
@@ -321,7 +320,7 @@ export default function Chat() {
                                   />
                                 </Card>
                                 <p
-                                  className={`text-xs text-muted-foreground mt-1 ${isUser ? "text-right" : "text-left"
+                                  className={`text-[10px] text-muted-foreground mt-1 mx-1 ${isUser ? "text-right" : "text-left"
                                     }`}
                                 >
                                   {formatTime(
@@ -392,66 +391,75 @@ export default function Chat() {
             });
             setTextareaHeight("auto"); // Reset height after submission
           }}
-          className="p-3 bg-neutral-50 absolute bottom-0 left-0 right-0 z-10 border-t border-neutral-300 dark:border-neutral-800 dark:bg-neutral-900"
+          className="p-4 bg-white dark:bg-neutral-950 border-t border-neutral-200 dark:border-neutral-800"
         >
-          <div className="flex items-center gap-2">
-            <div className="flex-1 relative">
-              <Textarea
-                disabled={pendingToolCallConfirmation}
-                placeholder={
-                  pendingToolCallConfirmation
-                    ? "Please respond to the tool confirmation above..."
-                    : "Send a message..."
+          <div className="relative">
+            <Textarea
+              disabled={pendingToolCallConfirmation}
+              placeholder={
+                pendingToolCallConfirmation
+                  ? "Please respond to the tool confirmation above..."
+                  : "Send a message..."
+              }
+              className="w-full min-h-[44px] max-h-[200px] resize-none rounded-2xl pl-4 pr-12 py-3 text-sm bg-neutral-100 dark:bg-neutral-900 border-none focus-visible:ring-1 focus-visible:ring-[#F48120]"
+              value={agentInput}
+              onChange={(e) => {
+                handleAgentInputChange(e);
+                // Auto-resize the textarea
+                e.target.style.height = "auto";
+                e.target.style.height = `${e.target.scrollHeight}px`;
+                setTextareaHeight(`${e.target.scrollHeight}px`);
+              }}
+              onKeyDown={(e) => {
+                if (
+                  e.key === "Enter" &&
+                  !e.shiftKey &&
+                  !e.nativeEvent.isComposing
+                ) {
+                  e.preventDefault();
+                  handleAgentSubmit(e as unknown as React.FormEvent);
+                  setTextareaHeight("auto"); // Reset height on Enter submission
                 }
-                className="w-full min-h-[24px] max-h-[calc(75dvh)] resize-none rounded-2xl text-base! pb-10"
-                value={agentInput}
-                onChange={(e) => {
-                  handleAgentInputChange(e);
-                  // Auto-resize the textarea
-                  e.target.style.height = "auto";
-                  e.target.style.height = `${e.target.scrollHeight}px`;
-                  setTextareaHeight(`${e.target.scrollHeight}px`);
-                }}
-                onKeyDown={(e) => {
-                  if (
-                    e.key === "Enter" &&
-                    !e.shiftKey &&
-                    !e.nativeEvent.isComposing
-                  ) {
-                    e.preventDefault();
-                    handleAgentSubmit(e as unknown as React.FormEvent);
-                    setTextareaHeight("auto"); // Reset height on Enter submission
-                  }
-                }}
-                rows={2}
-                style={{ height: textareaHeight }}
-              />
-              <div className="absolute bottom-0 right-0 p-2 w-fit flex flex-row justify-end">
-                {status === "submitted" || status === "streaming" ? (
-                  <Button
-                    type="button"
-                    onClick={stop}
-                    size="icon"
-                    className="rounded-full h-8 w-8"
-                    aria-label="Stop generation"
-                  >
-                    <StopIcon size={16} />
-                  </Button>
-                ) : (
-                  <Button
-                    type="submit"
-                    size="icon"
-                    className="rounded-full h-8 w-8"
-                    disabled={pendingToolCallConfirmation || !agentInput.trim()}
-                    aria-label="Send message"
-                  >
-                    <PaperPlaneTiltIcon size={16} />
-                  </Button>
-                )}
-              </div>
+              }}
+              rows={1}
+              style={{ height: textareaHeight }}
+            />
+            <div className="absolute bottom-1 right-1 p-1">
+              {status === "submitted" || status === "streaming" ? (
+                <Button
+                  type="button"
+                  onClick={stop}
+                  size="icon"
+                  className="rounded-full h-8 w-8 bg-neutral-200 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-50 hover:bg-neutral-300 dark:hover:bg-neutral-700"
+                  aria-label="Stop generation"
+                >
+                  <StopIcon size={14} />
+                </Button>
+              ) : (
+                <Button
+                  type="submit"
+                  size="icon"
+                  className={`rounded-full h-8 w-8 transition-colors ${agentInput.trim()
+                    ? "bg-[#F48120] text-white hover:bg-[#D66A10]"
+                    : "bg-neutral-200 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-500 cursor-not-allowed"}`}
+                  disabled={pendingToolCallConfirmation || !agentInput.trim()}
+                  aria-label="Send message"
+                >
+                  <PaperPlaneTiltIcon size={14} weight="fill" />
+                </Button>
+              )}
             </div>
           </div>
         </form>
+      </div>
+
+      {/* Right Side: Moltbot Iframe */}
+      <div className="flex-1 bg-neutral-100 dark:bg-neutral-900 h-full hidden md:block">
+        <iframe
+          src={`/agents/${agent.name || "default"}/moltbot/`}
+          className="w-full h-full border-none"
+          title="Moltbot Control UI"
+        />
       </div>
     </div>
   );

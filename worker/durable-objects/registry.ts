@@ -8,10 +8,12 @@ import {
     createUIMessageStreamResponse,
     type StreamTextOnFinishCallback
 } from "ai";
-import { openai } from "@ai-sdk/openai";
+// import { openai } from "@ai-sdk/openai";
+import { createWorkersAI } from "workers-ai-provider";
 import { orchestrationTools } from "../orchestration";
 
-const model = openai("gpt-4o-2024-11-20");
+// const model = openai("gpt-4o-2024-11-20");
+const modelName = "@cf/meta/llama-3-8b-instruct";
 
 export interface AgentMetadata {
     id: string;
@@ -156,6 +158,15 @@ export class Registry extends AIChatAgent<AgentEnv, RegistryState> {
             });
         }
 
+        // Handle POST to create/register agent
+        if (request.method === "POST" && url.pathname === "/api/registry") {
+            const body = await request.json() as { name: string };
+            const agent = await this.register(body.name);
+            return new Response(JSON.stringify(agent), {
+                headers: { "Content-Type": "application/json" }
+            });
+        }
+
         // Let the base AIChatAgent handle standard agent routes (like /messages, /connect)
         return super.fetch(request);
     }
@@ -172,6 +183,8 @@ export class Registry extends AIChatAgent<AgentEnv, RegistryState> {
                 // Pass "this" as the agent context to tools
                 const tools = validationSafeTools(orchestrationTools, this);
 
+                const workersai = createWorkersAI({ binding: this.env.AI });
+
                 const result = streamText({
                     system: `You are the Fleet Commander (Registry Agent).
 Your job is to orchestrate the fleet of autonomous agents.
@@ -184,7 +197,7 @@ You have access to the following tools:
 Always check fleet status before broadcasting if you are unsure who is online.
 `,
                     messages: await convertToModelMessages(this.messages),
-                    model,
+                    model: workersai(modelName as any),
                     tools,
                     onFinish,
                     abortSignal: options?.abortSignal

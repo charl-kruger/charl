@@ -10,6 +10,12 @@ export { Sandbox } from "@cloudflare/sandbox";
  */
 const app = new Hono<{ Bindings: AgentEnv }>();
 
+// DEBUG: Log all requests reaching the worker
+app.use("*", async (c, next) => {
+  console.log(`[Worker Global] Incoming request: ${c.req.method} ${c.req.path}`);
+  await next();
+});
+
 /**
  * Validate required environment variables.
  * Returns an array of missing variable descriptions, or empty array if all are set.
@@ -84,25 +90,104 @@ app.all("/api/registry/*", async (c) => {
 // or we can handle it here implicitly if routeAgentRequest handles "registry" correctly.
 // However, routeAgentRequest default behavior might map "registry" to "Chat" namespace.
 // So we intercept it explicitly here.
-app.all("/agents/registry/*", async (c) => {
-  const id = c.env.Registry.idFromName("default");
-  const stub = c.env.Registry.get(id);
-  // Rewrite path? The AIChatAgent expects /messages, /connect etc. 
-  // If we forward /agents/registry/messages -> /messages, it works out of the box.
-  const url = new URL(c.req.url);
-  // Check if we need to rewrite path for the DO
-  // routeAgentRequest typically does this mapping internaly.
-  // Let's manually rewrite: /agents/registry/foo -> /foo
-  // But wait, standard Agents SDK might expect /agents/registry prefix if configured?
-  // Actually, AIChatAgent base class usually handles root-relative paths.
+// Manual routing removed to let routeAgentRequest handle it with correct headers
+// app.all("/agents/registry/*", async (c) => {
+//   const id = c.env.Registry.idFromName("default");
+//   const stub = c.env.Registry.get(id);
+//   const url = new URL(c.req.url);
+//   if (url.pathname.startsWith("/agents/registry")) {
+//     url.pathname = url.pathname.replace("/agents/registry", "") || "/";
+//   }
+//   const newReq = new Request(url, c.req.raw);
+//   return stub.fetch(newReq);
+// });
 
-  // STRATEGY: Strip /agents/registry prefix
-  if (url.pathname.startsWith("/agents/registry")) {
-    url.pathname = url.pathname.replace("/agents/registry", "") || "/";
-  }
-  const newReq = new Request(url, c.req.raw);
-  return stub.fetch(newReq);
+// Explicitly route Moltbot proxy requests to the Chat Durable Object
+// This ensures they are handled by the server and not caught by the SPA fallback
+app.all("/agents/:name/moltbot", async (c) => {
+  return c.redirect(c.req.url + "/", 301);
 });
+app.all("/agents/:name/moltbot/", async (c) => {
+  // Explicitly handle the root path with trailing slash
+  return handleMoltbotRequest(c);
+});
+app.all("/agents/:name/moltbot/*", async (c) => {
+  return handleMoltbotRequest(c);
+});
+
+// Intercept Moltbot Client API and Asset requests (which default to root paths)
+// We use the Referer header to determine which Agent's Moltbot instance to target.
+app.use(async (c, next) => {
+  const url = new URL(c.req.url);
+
+  // paths used by Moltbot client
+  if (url.pathname.startsWith("/api/admin") || url.pathname.startsWith("/_admin")) {
+    const referer = c.req.header("Referer");
+    if (referer) {
+      try {
+        const refererUrl = new URL(referer);
+        // Extract agent name from: /agents/{name}/moltbot...
+        const match = refererUrl.pathname.match(/\/agents\/([^/]+)\/moltbot/);
+
+        if (match && match[1]) {
+          const agentName = match[1];
+          console.log(`[Worker] Rewriting ambiguous request ${url.pathname} -> agent: ${agentName}`);
+
+          if (agentName === "registry") {
+            return c.text("Registry agent does not support Moltbot proxy", 404);
+          }
+
+          const id = c.env.Chat.idFromName(agentName);
+          const stub = c.env.Chat.get(id);
+
+          // We need to rewrite the URL so the DO recognizes it as a Moltbot request
+          // The DO expects /moltbot/... to trigger the proxy logic
+          // Map /api/admin/... -> /moltbot/api/admin/...
+          // Map /_admin/... -> /moltbot/_admin/...
+          // Actually, let's just prepend /moltbot so it hits the "includes('/moltbot')" check
+          // and then logic in chat.ts strips it?
+          // chat.ts: const subPath = url.pathname.substring(moltbotIndex + "/moltbot".length)
+
+          // So if we send /agents/{name}/moltbot/api/admin/...
+          // DO receives it.
+          // chat.ts calculates subPath = /api/admin/...
+          // Then if checks if /moltbot/api is in path? 
+          // chat.ts: if (url.pathname.includes("/moltbot/api"))
+          // Wait. If we construct the URL as /agents/{name}/moltbot/api/admin...
+          // It works.
+
+          // BUT we passed `idFromName(agentName)`.
+          // The stub fetch url doesn't strictly need to match the worker's router structure, 
+          // but the DO implementation uses `new URL(request.url)`.
+
+          const newUrl = new URL(c.req.url);
+          newUrl.pathname = `/agents/${agentName}/moltbot${url.pathname}`;
+
+          const newReq = new Request(newUrl, c.req.raw);
+          return stub.fetch(newReq);
+        }
+      } catch (e) {
+        console.error("Error parsing referer for Moltbot routing:", e);
+      }
+    }
+  }
+
+  await next();
+});
+
+async function handleMoltbotRequest(c: any) {
+  const name = c.req.param("name");
+  console.log(`[Worker] Intercepted Moltbot proxy request for agent: ${name}, path: ${c.req.path}`);
+
+  if (name === "registry") {
+    return c.text("Registry agent does not support Moltbot proxy", 404);
+  }
+
+  const id = c.env.Chat.idFromName(name);
+  const stub = c.env.Chat.get(id);
+
+  return stub.fetch(c.req.raw);
+}
 
 // Fallback handler for Agents SDK routing and SPA
 app.all("*", async (c) => {
@@ -118,6 +203,12 @@ app.all("*", async (c) => {
   const response = await routeAgentRequest(c.req.raw, c.env);
   if (response) {
     return response;
+  }
+
+  // Guard: Do not pass WebSocket upgrades to ASSETS binding (causes Miniflare crash)
+  if (c.req.header("Upgrade") === "websocket") {
+    console.warn(`[Worker] Blocked unhandled WebSocket upgrade request to: ${c.req.path}`);
+    return new Response("WebSocket endpoint not found", { status: 400 });
   }
 
   // 3. SPA Fallback: Serve index.html for unknown routes

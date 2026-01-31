@@ -5,11 +5,11 @@ import {
 } from "cloudflare:test";
 import { describe, it, expect } from "vitest";
 // Could import any other source file/function here
-import worker from "../src/server";
+import worker from "../worker/server";
 
 declare module "cloudflare:test" {
   // Controls the type of `import("cloudflare:test").env`
-  interface ProvidedEnv extends Env {}
+  interface ProvidedEnv extends Env { }
 }
 
 describe("Chat worker", () => {
